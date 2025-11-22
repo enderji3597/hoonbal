@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>훈발)</title>
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; 
+            background-color: white; 
+            font-family: 'Malgun Gothic', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            position: relative; 
+        }
+
+        #hoonbal-btn {
+            padding: 25px 50px;
+            font-size: 2em;
+            cursor: pointer;
+            background-color: white; 
+            color: black; 
+            border: 3px solid black; 
+            border-radius: 15px;
+            position: relative; 
+            z-index: 15;
+            transition: background-color 0.1s, transform 0.1s;
+        }
+        #hoonbal-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        #fountain-source {
+            position: absolute; 
+            bottom: 5%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 10em; 
+            z-index: 10; 
+            pointer-events: none; 
+        }
+
+        #game-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            z-index: 5; 
+        }
+
+        .hoonbal-text {
+            position: absolute;
+            font-size: 1.5em; 
+            font-weight: bold;
+            color: #007bff; 
+            white-space: nowrap; 
+            opacity: 1; 
+            transition: opacity 2s ease-out, transform 0s linear; 
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="fountain-source">⛲</div>
+    <button id="hoonbal-btn">훈발!</button>
+    <div id="game-area"></div>
+
+    <script>
+        const hoonbalButton = document.getElementById('hoonbal-btn');
+        const fountainSource = document.getElementById('fountain-source');
+        const gameArea = document.getElementById('game-area');
+        const hoonbalText = '훈발!';
+
+        const hoonbals = []; 
+        let spawnIntervalId = null; 
+        const SPAWN_RATE = 100; 
+
+        // 🚀 초기 솟아오르는 힘 대폭 증가 (이전 8~15에서 15~25로)
+        const MIN_INITIAL_VY = 15; 
+        const MAX_INITIAL_VY = 25;
+
+        const MIN_INITIAL_VX = 1; 
+        const MAX_INITIAL_VX = 5;
+
+        // ⬇️ 중력 효과를 낮춰서 더 오래 떠 있게 만듦 (이전 0.3에서 0.15로)
+        const GRAVITY = 0.15; 
+        const UPDATE_INTERVAL = 10; 
+
+        let gameLoop = setInterval(updateHoonbals, UPDATE_INTERVAL);
+
+        function spawnHoonbal() {
+            const rect = fountainSource.getBoundingClientRect();
+            
+            const newHoonbal = document.createElement('span');
+            newHoonbal.textContent = hoonbalText;
+            newHoonbal.classList.add('hoonbal-text');
+            
+            const initialX = rect.left + rect.width / 2;
+            const initialY = rect.top + rect.height; 
+
+            newHoonbal.style.visibility = 'hidden';
+            gameArea.appendChild(newHoonbal);
+            const hoonbalWidth = newHoonbal.offsetWidth;
+            const hoonbalHeight = newHoonbal.offsetHeight;
+            newHoonbal.style.visibility = 'visible';
+
+            const initialVy = -(Math.random() * (MAX_INITIAL_VY - MIN_INITIAL_VY) + MIN_INITIAL_VY);
+            const initialVx = (Math.random() - 0.5) * (MAX_INITIAL_VX - MIN_INITIAL_VX) * 2;
+            
+            const hoonbalData = {
+                element: newHoonbal,
+                x: initialX - hoonbalWidth / 2, 
+                y: initialY - hoonbalHeight / 2, 
+                vx: initialVx, 
+                vy: initialVy,
+                width: hoonbalWidth, 
+                height: hoonbalHeight,
+                age: 0, 
+                maxAge: 300 
+            };
+
+            hoonbals.push(hoonbalData);
+        }
+
+        function updateHoonbals() {
+            const screenHeight = window.innerHeight;
+
+            for (let i = hoonbals.length - 1; i >= 0; i--) {
+                const t = hoonbals[i];
+                
+                t.vy += GRAVITY; 
+
+                t.x += t.vx;
+                t.y += t.vy;
+
+                if (t.y > screenHeight + t.height) { 
+                    t.element.remove();
+                    hoonbals.splice(i, 1);
+                    continue; 
+                }
+
+                t.age++;
+                if (t.age > t.maxAge / 2) { 
+                    const opacity = 1 - ((t.age - t.maxAge / 2) / (t.maxAge / 2));
+                    t.element.style.opacity = Math.max(0, opacity); 
+                }
+                
+                t.element.style.left = t.x + 'px';
+                t.element.style.top = t.y + 'px';
+            }
+        }
+
+        /* * 버튼 누름 상태 감지 로직 * */
+        
+        const startSpawning = () => {
+             if (spawnIntervalId === null) {
+                spawnHoonbal();
+                spawnIntervalId = setInterval(spawnHoonbal, SPAWN_RATE);
+            }
+        };
+
+        const stopSpawning = () => {
+            if (spawnIntervalId !== null) {
+                clearInterval(spawnIntervalId);
+                spawnIntervalId = null;
+            }
+        };
+
+        hoonbalButton.addEventListener('mousedown', startSpawning);
+        document.addEventListener('mouseup', stopSpawning);
+        
+        hoonbalButton.addEventListener('touchstart', (e) => {
+            e.preventDefault(); 
+            startSpawning();
+        });
+        document.addEventListener('touchend', stopSpawning);
+    </script>
+</body>
+</html>
